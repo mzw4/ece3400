@@ -28,7 +28,7 @@ void setup() {
   pinMode(10, OUTPUT);
   pinMode(3, INPUT_PULLUP);
   servo.attach(9);
-  servo.write(180);
+  
   Serial.begin(9600);
 }
 
@@ -45,18 +45,13 @@ void loop() {
     LED_ON = ~LED_ON;
   }
   
+  int analog_in = analogRead(POTENT_PIN);
   if(LED_ON) {
-    int analog_in = analogRead(POTENT_PIN);
-    
     //Serial.println(analog_in);
     analogWrite(ANALOG_PIN, int(analog_in/4));
   } else {
     analogWrite(ANALOG_PIN, 0);
   }
   
-  
-}
-
-int linear_map(int in, int max1, int max2) {
-  
+  servo.write(int(analog_in/5.683));
 }
