@@ -13,13 +13,11 @@ port at 115.2kb.
 #include <FFT.h> // include the library
 int pinNumber = A0;
 int k;
+int whistle = 0;
+int whistle_threshold = 40;
 
 void setup() {
   Serial.begin(115200); // use the serial port
-  //TIMSK0 = 0; // turn off timer0 for lower jitter
-  //ADCSRA = 0xe5; // set the adc to free running mode
-  //ADMUX = 0x40; // use adc0
-  //DIDR0 = 0x01; // turn off the digital input for adc0
 }
 
 void loop() {
@@ -43,6 +41,12 @@ void loop() {
         //Serial.println(i);
         Serial.println(fft_log_out[i]); // send out the data
       //}
+      if(i == 57 && fft_log_out[i] > whistle_threshold) {
+       whistle = 1;
+      } else {
+       whistle = 0;
+      }
     }
   }
 }
+
