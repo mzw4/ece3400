@@ -16,16 +16,16 @@ module blockArray (
 
 input reset;
 input clk;
-input [13:0] r_index; //x&y coords
-input [13:0] w_index; //x&y coords
+input [9:0] r_index; //x&y coords
+input [9:0] w_index; //x&y coords
 input [1:0] value; //write value
 input w_en; //write enable
 output [1:0] out; //gives r_index's value
 
-reg [1:0] array[16383:0]; //data array
+reg [1:0] array[1023:0]; //data array
 reg [1:0] pre_out; //since out value is a wire
 
-integer i;
+reg[9:0] i;
 
 always @(posedge clk) begin
 	if (reset) begin
@@ -39,9 +39,10 @@ always @(posedge clk) begin
 	if (w_en == 1) begin //write value
 		array[w_index] <= value;
 	end
-	//pre_out <= array[r_index]; // can use M9K
+	pre_out <= array[r_index]; // can use M9K
 end
 
-//assign out = pre_out; // can use M9K
-assign out = array[r_index]; // forces logic memory
+assign out = pre_out; // can use M9K
+//assign out = array[r_index]; // forces logic memory
 endmodule
+
