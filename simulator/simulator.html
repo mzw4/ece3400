@@ -1,0 +1,78 @@
+<html>
+
+<head>
+  <title>Maze Simulator</title>
+  <link rel="stylesheet" href="simulator.css">
+  <link rel="stylesheet" href="bootstrap.min.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  <script src="bootstrap.min.js"></script>
+  <script src="handlebars-v2.0.0.js"></script>
+  <script src="simulator.js"></script>
+</head>
+
+<body>
+  <div id="container" class="row">
+    <div id="input_panel" class="col-sm-offset-2 col-sm-2">
+
+      <form id="input_form" class="form-horizontal">
+        <div id="simulation_inputs">
+          <div class="form-group">
+            <label for="startx_input" class="control-label">Start x:</label>
+            <input type="number" id="startx_input" step="0.01" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="starty_input" class="control-label">Start y:</label>
+            <input type="number" id="starty_input" step="0.01" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="dir_input" class="control-label">Initial direction:</label>
+            <select id="dir_input" class="form-control"></select>
+          </div>
+          <div class="form-group">
+            <label for="alg_input" class="control-label">Algorithm</label>
+            <select id="alg_input" class="form-control"></select>
+          </div>
+        </div>
+
+        <div id="maze_generation_inputs">
+          <div class="form-group">
+            <label for="edge1" class="control-label">Edge 1 probability:</label>
+            <input type="number" id="edge1" step="0.01" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="edge2" class="control-label">Edge 2 probability:</label>
+            <input type="number" id="edge2" step="0.01" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="edge3" class="control-label">Edge 2 probability:</label>
+            <input type="number" id="edge3" step="0.01" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <button id="generate_button" class="btn btn-default">Generate</button>
+          <button id="move_button" class="btn btn-default">Move Robot</button>
+          <button id="start_button" class="btn btn-default">Start Simulation</button>
+          <button id="stop_button" class="btn btn-default">Stop Simulation</button>
+        </div>
+      </form>
+
+    </div>
+    <div id="maze_panel" class="col-sm-6"></div>
+  </div>
+</body>
+
+</html>
+
+<script id="cell_template" type="text/x-handlebars-template">
+  <td class="cell {{explored}}" data-index="{{y}}{{x}}"></td>
+</script>
+
+<script id="wall_template" type="text/x-handlebars-template">
+  <td class="{{wall_type}} {{present}}"></td>
+</script>
+
+<script id="option_template" type="text/x-handlebars-template">
+  <option value="{{value}}">{{value}}</option>
+</script>
