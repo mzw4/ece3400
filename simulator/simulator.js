@@ -3,6 +3,12 @@
 /*global console:false */
 /*global Handlebars */
 
+// ==================== Simulation Properties ====================
+
+var _num_simulations = 100;
+var _delay = 10;
+var _silent = false;
+
 // ==================== Maze Properties ====================
 var Dir = {
   N: 'N',
@@ -36,8 +42,8 @@ var _robot = {};
 var cell_template, wall_template, option_template;
 var i, j;
 var $maze_panel, $generate_button, $move_button, $start_button, $stop_button,
-  $startx_input, $starty_input, $dir_input, $alg_input,
-  $e1p, $e2p, $e3p;
+  $startx_input, $starty_input, $dir_input, $alg_input, $delay_input, $num_sims_input,
+  $e1p, $e2p, $e3p, $output_panel, $silent_input, $delay_value, $progress_bar;
 
 // ==================== Main ====================
 
@@ -45,6 +51,8 @@ $(function() {
   // ------------------- Init elements -------------------
 
   $maze_panel = $('#maze_panel');
+  $output_panel = $('#output_panel');
+
   $generate_button = $('#generate_button');
   $move_button = $('#move_button');
   $start_button = $('#start_button');
@@ -54,6 +62,11 @@ $(function() {
   $starty_input = $('#starty_input');
   $dir_input = $('#dir_input');
   $alg_input = $('#alg_input');
+  $num_sims_input = $('#num_sims_input');
+  $delay_input = $('#delay_input');
+  $delay_value = $('#delay_value');
+  $silent_input = $('#silent_input');
+  $progress_bar = $('#progress_bar');
 
   $e1p = $('#edge1');
   $e2p = $('#edge2');
@@ -82,6 +95,11 @@ $(function() {
   $e2p.val(edge_probabilities[1]);
   $e3p.val(edge_probabilities[2]);
 
+  $delay_input.val(_delay);
+  $delay_value.html($delay_input.val());
+  $num_sims_input.val(_num_simulations);
+  $silent_input.prop('checked', _silent);
+
   // ------------------- Event callbacks -------------------
   $generate_button.on('click', function(event) {
     event.preventDefault();
@@ -101,6 +119,22 @@ $(function() {
   $stop_button.on('click', function(event) {
     event.preventDefault();
     stop_sim();
+  });
+
+  $delay_input.on('change', function(event) {
+    event.preventDefault();
+    _delay = $delay_input.val();
+    $delay_value.html(_delay);
+  });
+
+  $num_sims_input.on('change', function(event) {
+    event.preventDefault();
+    _num_simulations = $num_sims_input.val();
+  });
+
+  $silent_input.on('change', function(event) {
+    event.preventDefault();
+    _silent = $silent_input.is(":checked");
   });
 
   $e1p.on('change', function(event) {
@@ -126,7 +160,8 @@ $(function() {
   var startx;
   var starty;
   var start_dir;
-  var algorithm;
+  // var algorithm;
+  var start_time;
 
   var algorithm_stats = {};
   _algorithms.forEach(function(algorithm) {
@@ -135,40 +170,47 @@ $(function() {
 
   function doMoves() {
     setTimeout(function () {
-      var done = performRobotStep();
-      if(!done) {
-        doMoves();
-      } else {
-        if(!('avg_moves' in algorithm_stats[algorithm])) {
-          algorithm_stats[algorithm].avg_moves = 0;
-        }
-        algorithm_stats[algorithm].avg_moves =
-          ((algorithm_stats[algorithm].avg_moves * sim_count) + _robot.moves)/(sim_count+1);
-        if(!running) return;
+      if(!running) return;
 
-        if(cur_algorithm < _algorithms.length-1) {
-          // simulate this maze for all algorithms
-          cur_algorithm = (cur_algorithm + 1) % _algorithms.length;
-          algorithm = _algorithms[cur_algorithm];
-          resetSimulation(startx, starty, start_dir, algorithm)
+      // Move the robot one step
+      var done = performRobotStep();
+      if(!done) { // There are still moves left to make
+        doMoves();
+      } else {  // Robot has finished making moves for this maze
+        show_output('Maze ' + sim_count + ': ' + _robot.algorithm + ' finished. Total moves: ' + _robot.moves);
+
+        // Update avg moves
+        if(!('avg_moves' in algorithm_stats[_robot.algorithm])) {
+          algorithm_stats[_robot.algorithm].avg_moves = 0;
+        }
+        algorithm_stats[_robot.algorithm].avg_moves =
+          ((algorithm_stats[_robot.algorithm].avg_moves * sim_count) + _robot.moves)/(sim_count+1);
+
+        cur_algorithm = cur_algorithm + 1;
+        if(cur_algorithm < _algorithms.length) {  // simulate this maze for next algorithm
+          resetSimulation(startx, starty, start_dir, _algorithms[cur_algorithm])
           doMoves();
-        } else if(sim_count < 20) {
+        } else if(sim_count < _num_simulations) { // simulate the next maze
           sim_count++;
           cur_algorithm = 0;
-          initSimulation(startx, starty, start_dir, algorithm);
+          initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
+          $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
           doMoves();
-        } else {
-          // report stats
+        } else {  // we're done, report stats
           Object.keys(algorithm_stats).forEach(function(algorithm) {
-            console.log('Algorithm: ' + algorithm + ' Simulations: ' + sim_count +
+            show_output('Algorithm: ' + algorithm + ' Simulations: ' + sim_count +
               ' Avg moves: ' + algorithm_stats[algorithm].avg_moves);
           });
+          show_output('Total time: ' + ((new Date()).getTime() - start_time)/1000 + ' seconds');
         }
       }
-    }, 1);  // delay 1ms between moves
+    }, _delay);  // delay 1ms between moves
   }
 
   function start_sim() {
+    start_time = (new Date()).getTime();
+    $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
+
     setParameters();
     initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
     running = true;
@@ -185,15 +227,17 @@ $(function() {
     start_dir = $dir_input.val();
     // algorithm = $alg_input.val();
     cur_algorithm = 0;
-    algorithm = _algorithms[cur_algorithm];
+    // algorithm = _algorithms[cur_algorithm];
     sim_count = 0;
   }
 
   function initSimulation(startx, starty, start_dir, algorithm) {
     makeMaze();
     initRobot(startx, starty, start_dir, algorithm);
-    drawMaze();
-    drawRobot(_robot);
+    if(!_silent) {
+      drawMaze();
+      drawRobot(_robot);
+    }
   }
 
   function resetSimulation(startx, starty, start_dir, algorithm) {
@@ -203,12 +247,18 @@ $(function() {
 
   function performRobotStep() {
     var done = moveRobot();
-    drawMaze();
-    drawRobot(_robot);
+    if(!_silent) {
+      drawMaze();
+      drawRobot(_robot);
+    }
     return done;
   }
+
 });
 
+function show_output(msg) {
+  $output_panel.append('<div>' + msg + '</div>');
+}
 
 // ============================= MAZE LOGIC =============================
 
@@ -515,7 +565,6 @@ function moveRobot() {
     _maze[move.y][move.x].visited = true;
     return false;
   } else {
-    console.log('No moves left! Total moves: ' + _robot.moves);
     return true;
   }
 }

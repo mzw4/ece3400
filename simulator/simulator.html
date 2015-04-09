@@ -12,55 +12,87 @@
 </head>
 
 <body>
-  <div id="container" class="row">
-    <div id="input_panel" class="col-sm-offset-2 col-sm-2">
+  <div id="container">
 
-      <form id="input_form" class="form-horizontal">
-        <div id="simulation_inputs">
-          <div class="form-group">
-            <label for="startx_input" class="control-label">Start x:</label>
-            <input type="number" id="startx_input" step="0.01" class="form-control">
+    <div class="row">
+      <div id="input_panel" class="col-sm-offset-1 col-sm-2">
+
+        <form id="input_form" class="form-horizontal">
+          <div id="simulation_inputs">
+            <div class="form-group">
+              <label for="startx_input" class="control-label">Start x:</label>
+              <input type="number" id="startx_input" step="0.01" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="starty_input" class="control-label">Start y:</label>
+              <input type="number" id="starty_input" step="0.01" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="dir_input" class="control-label">Initial direction:</label>
+              <select id="dir_input" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label for="alg_input" class="control-label">Algorithm</label>
+              <select id="alg_input" class="form-control"></select>
+            </div>
           </div>
+
+  <!--         <div id="maze_generation_inputs">
+            <div class="form-group">
+              <label for="edge1" class="control-label">Edge 1 probability:</label>
+              <input type="number" id="edge1" step="0.01" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="edge2" class="control-label">Edge 2 probability:</label>
+              <input type="number" id="edge2" step="0.01" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="edge3" class="control-label">Edge 2 probability:</label>
+              <input type="number" id="edge3" step="0.01" class="form-control">
+            </div>
+          </div> -->
+        </form>
+
+      </div>
+
+      <div id="sim_input_panel" class="col-sm-2">
+        <form id="sim_input_form" class="form-horizontal">
           <div class="form-group">
-            <label for="starty_input" class="control-label">Start y:</label>
-            <input type="number" id="starty_input" step="0.01" class="form-control">
+            <label for="num_sims_input" class="control-label">Num simulations:</label>
+            <input type="number" id="num_sims_input" step="1" class="form-control">
           </div>
+
           <div class="form-group">
-            <label for="dir_input" class="control-label">Initial direction:</label>
-            <select id="dir_input" class="form-control"></select>
+            <label for="delay_input" class="control-label">Move delay (ms): <span id="delay_value"></span></label>
+            <input type='range' id='delay_input' min='0' value='1' max='2000' step='100'>
           </div>
+
           <div class="form-group">
-            <label for="alg_input" class="control-label">Algorithm</label>
-            <select id="alg_input" class="form-control"></select>
+            <label for="silent_input" class="control-label">Silent simulation:</label>
+            <input type="checkbox" id="silent_input" step="1" class="form-control">
           </div>
+
+          <div class="form-group">
+            <button id="generate_button" class="btn btn-default">Generate</button>
+            <button id="move_button" class="btn btn-default">Move Robot</button>
+            <button id="start_button" class="btn btn-default">Start Simulation</button>
+            <button id="stop_button" class="btn btn-default">Stop Simulation</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="maze_panel" class="col-sm-5"></div>
+    </div><!-- row -->
+
+    <div class="row top_buffer">
+      <div class="col-sm-offset-5 col-sm-5">
+        <div id="progress">
+          <div id="progress_bar"></div>
         </div>
-
-        <div id="maze_generation_inputs">
-          <div class="form-group">
-            <label for="edge1" class="control-label">Edge 1 probability:</label>
-            <input type="number" id="edge1" step="0.01" class="form-control">
-          </div>
-          <div class="form-group">
-            <label for="edge2" class="control-label">Edge 2 probability:</label>
-            <input type="number" id="edge2" step="0.01" class="form-control">
-          </div>
-          <div class="form-group">
-            <label for="edge3" class="control-label">Edge 2 probability:</label>
-            <input type="number" id="edge3" step="0.01" class="form-control">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <button id="generate_button" class="btn btn-default">Generate</button>
-          <button id="move_button" class="btn btn-default">Move Robot</button>
-          <button id="start_button" class="btn btn-default">Start Simulation</button>
-          <button id="stop_button" class="btn btn-default">Stop Simulation</button>
-        </div>
-      </form>
-
-    </div>
-    <div id="maze_panel" class="col-sm-6"></div>
-  </div>
+        <div id="output_panel"></div>
+      </div>
+    </div><!-- row -->
+  </div><!-- container -->
 </body>
 
 </html>

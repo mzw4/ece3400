@@ -1,3 +1,5 @@
+/* ------ Panel stuff ------ */
+
 #container {
   padding: 30px;
 }
@@ -6,12 +8,56 @@
   margin-right: 15px;
   padding: 30px;
   border: 1px solid #000;
+  height: 510px;
+  overflow: auto;
+}
+
+#sim_input_panel {
+  margin-right: 15px;
+  padding: 30px;
+  border: 1px solid #000;
+  height: 510px;
+  overflow: auto;
 }
 
 #maze_panel {
-  border: 1px solid #000;
+  /*border: 1px solid #000;*/
   padding: 30px;
+  margin-right: 15px;
+  height: 510px;
 }
+
+#output_panel {
+  /*border: 1px solid #000;*/
+  padding: 30px;
+  margin-left: 15px;
+  height: 300px;
+  overflow: auto;
+}
+
+#progress {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  height: 20px;
+  margin-left: 15px;
+}
+#progress_bar {
+  background-color: #336699;
+  border-radius: 10px;
+  height: 20px;
+}
+
+/* ------ Attributes ------ */
+
+.top_buffer {
+  margin-top: 15px;
+}
+
+.btn {
+  margin-top: 15px; 
+}
+
+/* ------ Maze stuff ------ */
 
 .cell {
   position: relative;
