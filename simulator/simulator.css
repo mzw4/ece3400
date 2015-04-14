@@ -1,27 +1,38 @@
+body {
+  background-color: white;
+  color: black;
+  font-family: "Helvetica Neue";
+  font-style: condensed;
+  font-weight: normal;
+}
+
 /* ------ Panel stuff ------ */
 
 #container {
-  padding: 0 30px;
+  padding: 0 30px 15px 30px;
 }
 
 #input_panel {
   padding: 30px 30px 0 30px;
   border: 1px solid #ccc;
+  height: 220px;
+  overflow: auto;
 }
 
 #sim_input_panel {
   padding: 30px 30px 0 30px;
   border: 1px solid #ccc;
   overflow: auto;
-  margin-right: 15px;
+  height: 220px;
 }
 
 #simulation_info {
-  font-size: 150%;
+  font-size: 120%;
+  padding-bottom: 15px;
+  font-weight: bold;
 }
 
 #maze_panel {
-  border: 1px solid #ccc;
   padding: 15px 30px;
   height: 480px;
 }
@@ -29,22 +40,15 @@
 #info_panel {
   border: 1px solid #ccc;
   padding: 15px 30px;
+  height: 480px;
 }
 
-#output_panel {
-  margin-left: 15px;
-  height: 400px;
-  overflow: auto;
-}
-
-#progress_wrapper {
-  padding-left: 60px;
-}
 #progress {
   border: 1px solid #ccc;
   border-radius: 10px;
   height: 20px;
   width: 500px;
+  margin-bottom: 15px;
 }
 #progress_bar {
   background-color: #336699;
@@ -52,7 +56,23 @@
   height: 20px;
 }
 
+#output_panel {
+  margin-left: 15px;
+  height: 365px;
+  overflow: auto;
+}
+
+#delay_formgroup {
+  padding: 0 15px;
+}
+
 /* ------ Attributes ------ */
+
+.border {
+  border-top: 1px solid #ccc;
+  width: 75%;
+  margin: 15px 0;
+}
 
 .top_buffer {
   margin-top: 15px;

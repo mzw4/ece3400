@@ -22,9 +22,9 @@ var WIDTH = 5;
 var HEIGHT = 4;
 
 var edge_probabilities = {
-  0: 0.95,
-  1: 0.2,
-  2: 0.1,
+  0: 0.9,
+  1: 0.3,
+  2: 0.3,
 };
 
 var _maze = [];
@@ -39,7 +39,7 @@ var ISLAND_DISTANCE_THRESHOLD = 3;
 
 var _all_algorithms = ['prioritize_smart_islands', 'prioritize_smart', 'random_norepeat_smart', 'random_norepeat', 'random'];
 
-var _algorithms = [];
+var _algorithms = ['prioritize_smart_islands'];
 var _robot = {};
 
 // ==================== Drawing vars ====================
@@ -106,9 +106,12 @@ $(function() {
   $num_sims_input.val(_num_simulations);
   $silent_input.prop('checked', _silent);
 
+  $('#prioritize_smart_islands_checkbox').prop('checked', true);
+
   // ------------------- Event callbacks -------------------
   $generate_button.on('click', function(event) {
     event.preventDefault();
+    stop_sim();
     initSim();
   });
 
@@ -120,7 +123,11 @@ $(function() {
 
   $start_button.on('click', function(event) {
     event.preventDefault();
-    start_sim();
+    if(!running) {
+      start_sim();
+    } else {
+      paused = !paused;
+    }
   });
 
   $stop_button.on('click', function(event) {
@@ -128,7 +135,7 @@ $(function() {
     stop_sim();
   });
 
-  $delay_input.on('change', function(event) {
+  $delay_input.on('input', function(event) {
     event.preventDefault();
     _delay = $delay_input.val();
     $delay_value.html(_delay);
@@ -153,6 +160,11 @@ $(function() {
   $silent_input.on('change', function(event) {
     event.preventDefault();
     _silent = $silent_input.is(":checked");
+    if(_silent) {
+      _delay = 0;
+      $delay_input.val(_delay);
+      $delay_value.html(_delay);
+    }
   });
 
   $e1p.on('change', function(event) {
@@ -173,6 +185,7 @@ $(function() {
   var avg_moves = 0;
   var sim_count = 0;
   var running = false;
+  var paused = false;
 
   var cur_algorithm;
   var startx;
@@ -187,9 +200,13 @@ $(function() {
   });
 
   function doMoves() {
-    if(!running) return;
+    if(!_manual && !running) return;
 
-    var done = performRobotStep();
+    var done = false;
+    if(!paused) {
+      done = performRobotStep();
+    }
+
     if(!done && !_manual) {
       setTimeout(function () {
         doMoves();
@@ -254,12 +271,14 @@ $(function() {
   function start_sim() {
     _manual = false;
     if(initSim()) {
+      running = true;
       doMoves();      
     }
   }
 
   function stop_sim() {
     running = false;
+    paused = false;
   }
 
   function setParameters() {
@@ -276,10 +295,8 @@ $(function() {
     $sim_info.html("Maze: " + sim_count + ' (' + (sim_count*100/_num_simulations) + '%), Algorithm:' + _algorithms[cur_algorithm]);
     makeMaze(startx, starty);
     initRobot(startx, starty, start_dir, algorithm);
-    if(!_silent) {
-      drawMaze();
-      drawRobot(_robot);
-    }
+    drawMaze();
+    drawRobot(_robot);
   }
 
   function resetSimulation(startx, starty, start_dir, algorithm) {
@@ -297,7 +314,6 @@ $(function() {
       return false;
     }
     initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
-    running = true;
     return true;
   }
 
@@ -314,6 +330,7 @@ $(function() {
 
 function show_output(msg) {
   $output_panel.append('<div>' + msg + '</div>');
+  $output_panel.scrollTop($output_panel[0].scrollHeight);
 }
 
 // ============================= MAZE LOGIC =============================
@@ -659,7 +676,7 @@ function moveRobot() {
         }
       } else {
         // prioritize left movement
-        [Dir.N, Dir.E, Dir.S, Dir.W].reverse().forEach(function(dir) {
+        [Dir.N, Dir.S, Dir.W, Dir.E].reverse().forEach(function(dir) {
           var point = getPointInDir(_robot.x, _robot.y, dir);
           if(unexplored.indexOf(pointToString(point)) > -1) {
             move = {x: point.x, y: point.y };
