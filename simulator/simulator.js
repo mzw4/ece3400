@@ -8,6 +8,7 @@
 var _num_simulations = 100;
 var _delay = 10;
 var _silent = false;
+var _manual = false;
 
 // ==================== Maze Properties ====================
 var Dir = {
@@ -22,7 +23,7 @@ var HEIGHT = 4;
 
 var edge_probabilities = {
   0: 0.95,
-  1: 0.1,
+  1: 0.2,
   2: 0.1,
 };
 
@@ -34,12 +35,16 @@ var START_Y = 3;
 var START_X = 0;
 var INITIAL_DIR = Dir.E;
 
-var _algorithms = ['prioritize_smart', 'random_norepeat_smart'];
+var ISLAND_DISTANCE_THRESHOLD = 3;
+
+var _all_algorithms = ['prioritize_smart_islands', 'prioritize_smart', 'random_norepeat_smart', 'random_norepeat', 'random'];
+
+var _algorithms = [];
 var _robot = {};
 
 // ==================== Drawing vars ====================
 
-var cell_template, wall_template, option_template;
+var cell_template, wall_template, option_template, alg_select_template;
 var i, j;
 var $maze_panel, $generate_button, $move_button, $start_button, $stop_button,
   $startx_input, $starty_input, $dir_input, $alg_input, $delay_input, $num_sims_input,
@@ -76,6 +81,7 @@ $(function() {
   cell_template = Handlebars.compile($('#cell_template').html());
   wall_template = Handlebars.compile($('#wall_template').html());
   option_template = Handlebars.compile($('#option_template').html());
+  alg_select_template = Handlebars.compile($('#alg_select_template').html());
 
   // populate default input values
   $startx_input.val(START_X);
@@ -86,9 +92,8 @@ $(function() {
   });
   $dir_input.val(INITIAL_DIR);
 
-  $alg_input.append(option_template({ value: 'All' }));
-  _algorithms.forEach(function(alg) {
-    $alg_input.append(option_template({ value: alg }));
+  _all_algorithms.forEach(function(alg) {
+    $alg_input.append(alg_select_template({ algorithm: alg }));
   });
 
   $e1p.val(edge_probabilities[0]);
@@ -103,12 +108,13 @@ $(function() {
   // ------------------- Event callbacks -------------------
   $generate_button.on('click', function(event) {
     event.preventDefault();
-    initSimulation();
+    initSim();
   });
 
   $move_button.on('click', function(event) {
     event.preventDefault();
-    performRobotStep();
+    _manual = true;
+    doMoves();
   });
 
   $start_button.on('click', function(event) {
@@ -130,6 +136,17 @@ $(function() {
   $num_sims_input.on('change', function(event) {
     event.preventDefault();
     _num_simulations = $num_sims_input.val();
+  });
+
+  _all_algorithms.forEach(function(alg) {
+    $('#' + alg + '_checkbox').on('change', function(event) {
+      event.preventDefault();
+      if($(this).is(":checked")) {
+        _algorithms.push(alg);
+      } else {
+        _algorithms.remove(alg);
+      }
+    });
   });
 
   $silent_input.on('change', function(event) {
@@ -164,57 +181,87 @@ $(function() {
   var start_time;
 
   var algorithm_stats = {};
-  _algorithms.forEach(function(algorithm) {
+  _all_algorithms.forEach(function(algorithm) {
     algorithm_stats[algorithm] = {};
   });
 
   function doMoves() {
-    setTimeout(function () {
-      if(!running) return;
+    if(!running) return;
 
-      // Move the robot one step
-      var done = performRobotStep();
-      if(!done) { // There are still moves left to make
+    var done = performRobotStep();
+    if(!done && !_manual) {
+      setTimeout(function () {
         doMoves();
-      } else {  // Robot has finished making moves for this maze
-        show_output('Maze ' + sim_count + ': ' + _robot.algorithm + ' finished. Total moves: ' + _robot.moves);
+      }, _delay);
+    } else if(done) {
+      show_output('Maze ' + sim_count + ': ' + _robot.algorithm + ' finished. Total moves: ' + _robot.moves);
 
-        // Update avg moves
-        if(!('avg_moves' in algorithm_stats[_robot.algorithm])) {
-          algorithm_stats[_robot.algorithm].avg_moves = 0;
-        }
-        algorithm_stats[_robot.algorithm].avg_moves =
-          ((algorithm_stats[_robot.algorithm].avg_moves * sim_count) + _robot.moves)/(sim_count+1);
-
-        cur_algorithm = cur_algorithm + 1;
-        if(cur_algorithm < _algorithms.length) {  // simulate this maze for next algorithm
-          resetSimulation(startx, starty, start_dir, _algorithms[cur_algorithm])
-          doMoves();
-        } else if(sim_count < _num_simulations) { // simulate the next maze
-          sim_count++;
-          cur_algorithm = 0;
-          initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
-          $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
-          doMoves();
-        } else {  // we're done, report stats
-          Object.keys(algorithm_stats).forEach(function(algorithm) {
-            show_output('Algorithm: ' + algorithm + ' Simulations: ' + sim_count +
-              ' Avg moves: ' + algorithm_stats[algorithm].avg_moves);
-          });
-          show_output('Total time: ' + ((new Date()).getTime() - start_time)/1000 + ' seconds');
-        }
+      // Update avg moves
+      if(!('avg_moves' in algorithm_stats[_robot.algorithm])) {
+        algorithm_stats[_robot.algorithm].avg_moves = 0;
       }
-    }, _delay);  // delay 1ms between moves
+      algorithm_stats[_robot.algorithm].avg_moves =
+        ((algorithm_stats[_robot.algorithm].avg_moves * sim_count) + _robot.moves)/(sim_count+1);
+
+      cur_algorithm = cur_algorithm + 1;
+      if(cur_algorithm < _algorithms.length) {  // simulate this maze for next algorithm
+        resetSimulation(startx, starty, start_dir, _algorithms[cur_algorithm])
+        doMoves();
+      } else if(sim_count < _num_simulations) { // simulate the next maze
+        sim_count++;
+        cur_algorithm = 0;
+        initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
+        $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
+        doMoves();
+      } else {  // we're done, report stats
+        Object.keys(algorithm_stats).forEach(function(algorithm) {
+          show_output('Algorithm: ' + algorithm + ' Simulations: ' + sim_count +
+            ' Avg moves: ' + algorithm_stats[algorithm].avg_moves);
+        });
+        show_output('Total time: ' + ((new Date()).getTime() - start_time)/1000 + ' seconds');
+      }
+    }
+
+    //   // Move the robot one step
+    //   var done = performRobotStep();
+    //   if(!done) { // There are still moves left to make
+    //     doMoves();
+    //   } else {  // Robot has finished making moves for this maze
+    //     show_output('Maze ' + sim_count + ': ' + _robot.algorithm + ' finished. Total moves: ' + _robot.moves);
+
+    //     // Update avg moves
+    //     if(!('avg_moves' in algorithm_stats[_robot.algorithm])) {
+    //       algorithm_stats[_robot.algorithm].avg_moves = 0;
+    //     }
+    //     algorithm_stats[_robot.algorithm].avg_moves =
+    //       ((algorithm_stats[_robot.algorithm].avg_moves * sim_count) + _robot.moves)/(sim_count+1);
+
+    //     cur_algorithm = cur_algorithm + 1;
+    //     if(cur_algorithm < _algorithms.length) {  // simulate this maze for next algorithm
+    //       resetSimulation(startx, starty, start_dir, _algorithms[cur_algorithm])
+    //       doMoves();
+    //     } else if(sim_count < _num_simulations) { // simulate the next maze
+    //       sim_count++;
+    //       cur_algorithm = 0;
+    //       initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
+    //       $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
+    //       doMoves();
+    //     } else {  // we're done, report stats
+    //       Object.keys(algorithm_stats).forEach(function(algorithm) {
+    //         show_output('Algorithm: ' + algorithm + ' Simulations: ' + sim_count +
+    //           ' Avg moves: ' + algorithm_stats[algorithm].avg_moves);
+    //       });
+    //       show_output('Total time: ' + ((new Date()).getTime() - start_time)/1000 + ' seconds');
+    //     }
+    //   }
+    // }, _delay);  // delay 1ms between moves
   }
 
   function start_sim() {
-    start_time = (new Date()).getTime();
-    $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
-
-    setParameters();
-    initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
-    running = true;
-    doMoves();
+    _manual = false;
+    if(initSim()) {
+      doMoves();      
+    }
   }
 
   function stop_sim() {
@@ -232,7 +279,7 @@ $(function() {
   }
 
   function initSimulation(startx, starty, start_dir, algorithm) {
-    makeMaze();
+    makeMaze(startx, starty);
     initRobot(startx, starty, start_dir, algorithm);
     if(!_silent) {
       drawMaze();
@@ -243,6 +290,20 @@ $(function() {
   function resetSimulation(startx, starty, start_dir, algorithm) {
     resetMaze();
     initRobot(startx, starty, start_dir, algorithm);
+  }
+
+  function initSim() {
+    start_time = (new Date()).getTime();
+    $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
+
+    setParameters();
+    if(_algorithms.length == 0) {
+      show_output("No algorithm selected! Select an algorithm and regenerate the maze.");
+      return false;
+    }
+    initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
+    running = true;
+    return true;
   }
 
   function performRobotStep() {
@@ -270,8 +331,8 @@ function resetMaze() {
   });
 }
 
-function makeMaze() {
-  generateMaze(0, 3);
+function makeMaze(startx, starty) {
+  generateMaze(startx, starty);
 }
 
 var visited = {};
@@ -284,7 +345,10 @@ function generateMaze(startx, starty) {
   for(i = 0; i < HEIGHT; i++) {
     _maze[i] = [];
     for(j = 0; j < WIDTH; j++) {
-      _maze[i].push({});
+      _maze[i].push({
+        'outgoing': [],
+        'visited': false
+      });
     }
   }
 
@@ -434,7 +498,7 @@ function pointToString(point) {
 }
 
 function stringToPoint(str) {
-  return { x: str.charAt(1), y: str.charAt(0) };
+  return { x: parseInt(str.charAt(1)), y: parseInt(str.charAt(0)) };
 }
 
 // ============================= ROBOT LOGIC =============================
@@ -552,6 +616,52 @@ function moveRobot() {
         });
       }
       break;
+    case 'prioritize_smart_islands':
+      if(_robot.path && _robot.path.length > 0) {
+        move = stringToPoint(_robot.path[0]);
+        _robot.path.splice(0, 1);
+        break;
+      }
+
+      unexplored = outgoing.filter(function(point) {
+        return !(point in _robot.explored);
+      });
+
+      // check for islands
+      var path_to_island = findPathToIsland(_robot.x, _robot.y, ISLAND_DISTANCE_THRESHOLD)
+
+      if(path_to_island != null && path_to_island.length > 0) {
+        path_to_island.splice(0, 1);
+        if(path_to_island.length > 0) {
+            move = stringToPoint(path_to_island[0]);
+          path_to_island.splice(0, 1);
+          _robot.path = path_to_island;
+        }
+      } else if(unexplored.length === 0) {
+        // find unexplored areas
+        unexplored_frontier = findUnexplored();
+        if(unexplored_frontier.length === 0) {
+          break;
+        }
+
+        // navigate to nearest unexplored location
+        path = findClosestPath(unexplored_frontier);
+        path.splice(0, 1);
+        if(path.length > 0) {
+          move = stringToPoint(path[0]);
+          path.splice(0, 1);
+          _robot.path = path;
+        }
+      } else {
+        // prioritize left movement
+        [Dir.N, Dir.E, Dir.S, Dir.W].reverse().forEach(function(dir) {
+          var point = getPointInDir(_robot.x, _robot.y, dir);
+          if(unexplored.indexOf(pointToString(point)) > -1) {
+            move = {x: point.x, y: point.y };
+          }
+        });
+      }
+      break;
     default:
       console.log('Algorithm not recognized.');
       return true;
@@ -607,6 +717,36 @@ function findClosestPath(unexplored) {
     }
   });
   return min_path;
+}
+
+// Finds islands that are within a certain distance from the given location
+// If an island is found, returns the path to that island
+function findPathToIsland(start_x, start_y, max_dist) {
+  // search maze for islands
+  var result_path = []
+  _maze.forEach(function(row, y) {
+    row.forEach(function(cell, x) {
+      var island = true;
+      Object.keys(Dir).forEach(function(dir) {
+        var point = getPointInDir(x, y, dir)
+        // if there is a neighbor that is not visited and there is no wall, this cell is not an island
+        if(cell.outgoing.length == 0 ||
+            pointToString(point) in cell.outgoing && !_maze[point.y][point.x].visited) {
+          island = false;
+        }
+      });
+      if(!cell.visited && island) {
+        // check the distance
+        var path = astar(start_x, start_y, x, y);
+        if(path.length <= max_dist) {
+          // return path to the island
+          console.log("Island path: " + path);
+          result_path = path;
+        }
+      }
+    });
+  });
+  return result_path;
 }
 
 // ============================= PATHFINDING =============================
