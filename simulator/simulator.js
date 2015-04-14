@@ -48,13 +48,14 @@ var cell_template, wall_template, option_template, alg_select_template;
 var i, j;
 var $maze_panel, $generate_button, $move_button, $start_button, $stop_button,
   $startx_input, $starty_input, $dir_input, $alg_input, $delay_input, $num_sims_input,
-  $e1p, $e2p, $e3p, $output_panel, $silent_input, $delay_value, $progress_bar;
+  $e1p, $e2p, $e3p, $output_panel, $silent_input, $delay_value, $progress_bar, $sim_info;
 
 // ==================== Main ====================
 
 $(function() {
   // ------------------- Init elements -------------------
 
+  $sim_info = $('#simulation_info');
   $maze_panel = $('#maze_panel');
   $output_panel = $('#output_panel');
 
@@ -203,6 +204,27 @@ $(function() {
       algorithm_stats[_robot.algorithm].avg_moves =
         ((algorithm_stats[_robot.algorithm].avg_moves * sim_count) + _robot.moves)/(sim_count+1);
 
+      // Update avg deviation from max efficiency
+      if(!('avg_deviation' in algorithm_stats[_robot.algorithm])) {
+        algorithm_stats[_robot.algorithm].avg_deviation = 0;
+      }
+      if(!('deviation_count' in algorithm_stats[_robot.algorithm])) {
+        algorithm_stats[_robot.algorithm].deviation_count = 0;
+      }
+      if(!('max_deviation' in algorithm_stats[_robot.algorithm])) {
+        algorithm_stats[_robot.algorithm].max_deviation = 0;
+      }
+      var num_visited = getNumVisitedMaze();
+      if(num_visited <= _robot.moves) {
+        var count = algorithm_stats[_robot.algorithm].deviation_count;
+        var deviation = _robot.moves - num_visited;
+        algorithm_stats[_robot.algorithm].avg_deviation =
+          ((algorithm_stats[_robot.algorithm].avg_deviation * count) + deviation)/(count+1);
+        algorithm_stats[_robot.algorithm].deviation_count++;
+        algorithm_stats[_robot.algorithm].max_deviation = Math.max(deviation, algorithm_stats[_robot.algorithm].max_deviation);
+      }
+
+      // Decide next action
       cur_algorithm = cur_algorithm + 1;
       if(cur_algorithm < _algorithms.length) {  // simulate this maze for next algorithm
         resetSimulation(startx, starty, start_dir, _algorithms[cur_algorithm])
@@ -214,47 +236,19 @@ $(function() {
         $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
         doMoves();
       } else {  // we're done, report stats
-        Object.keys(algorithm_stats).forEach(function(algorithm) {
-          show_output('Algorithm: ' + algorithm + ' Simulations: ' + sim_count +
-            ' Avg moves: ' + algorithm_stats[algorithm].avg_moves);
+        _algorithms.forEach(function(algorithm) {
+          show_output('==========' + algorithm);
+          show_output('Simulations: ' + sim_count);
+          show_output('Avg moves: ' + algorithm_stats[algorithm].avg_moves);
+          show_output('Max efficiency deviation count: ' + algorithm_stats[algorithm].deviation_count);
+          show_output('Avg deviation: ' + algorithm_stats[algorithm].avg_deviation);
+          show_output('Max deviation: ' + algorithm_stats[algorithm].max_deviation);
         });
-        show_output('Total time: ' + ((new Date()).getTime() - start_time)/1000 + ' seconds');
+        show_output('==========');
+        show_output('Total simulation time: ' + ((new Date()).getTime() - start_time)/1000 + ' seconds');
       }
+      $sim_info.html("Maze: " + sim_count + ' (' + (sim_count*100/_num_simulations) + '%), Algorithm:' + _algorithms[cur_algorithm]);
     }
-
-    //   // Move the robot one step
-    //   var done = performRobotStep();
-    //   if(!done) { // There are still moves left to make
-    //     doMoves();
-    //   } else {  // Robot has finished making moves for this maze
-    //     show_output('Maze ' + sim_count + ': ' + _robot.algorithm + ' finished. Total moves: ' + _robot.moves);
-
-    //     // Update avg moves
-    //     if(!('avg_moves' in algorithm_stats[_robot.algorithm])) {
-    //       algorithm_stats[_robot.algorithm].avg_moves = 0;
-    //     }
-    //     algorithm_stats[_robot.algorithm].avg_moves =
-    //       ((algorithm_stats[_robot.algorithm].avg_moves * sim_count) + _robot.moves)/(sim_count+1);
-
-    //     cur_algorithm = cur_algorithm + 1;
-    //     if(cur_algorithm < _algorithms.length) {  // simulate this maze for next algorithm
-    //       resetSimulation(startx, starty, start_dir, _algorithms[cur_algorithm])
-    //       doMoves();
-    //     } else if(sim_count < _num_simulations) { // simulate the next maze
-    //       sim_count++;
-    //       cur_algorithm = 0;
-    //       initSimulation(startx, starty, start_dir, _algorithms[cur_algorithm]);
-    //       $progress_bar.css({ width: (sim_count*100/_num_simulations) + '%' });
-    //       doMoves();
-    //     } else {  // we're done, report stats
-    //       Object.keys(algorithm_stats).forEach(function(algorithm) {
-    //         show_output('Algorithm: ' + algorithm + ' Simulations: ' + sim_count +
-    //           ' Avg moves: ' + algorithm_stats[algorithm].avg_moves);
-    //       });
-    //       show_output('Total time: ' + ((new Date()).getTime() - start_time)/1000 + ' seconds');
-    //     }
-    //   }
-    // }, _delay);  // delay 1ms between moves
   }
 
   function start_sim() {
@@ -279,6 +273,7 @@ $(function() {
   }
 
   function initSimulation(startx, starty, start_dir, algorithm) {
+    $sim_info.html("Maze: " + sim_count + ' (' + (sim_count*100/_num_simulations) + '%), Algorithm:' + _algorithms[cur_algorithm]);
     makeMaze(startx, starty);
     initRobot(startx, starty, start_dir, algorithm);
     if(!_silent) {
@@ -499,6 +494,16 @@ function pointToString(point) {
 
 function stringToPoint(str) {
   return { x: parseInt(str.charAt(1)), y: parseInt(str.charAt(0)) };
+}
+
+function getNumVisitedMaze() {
+  var sum = 0;
+  _maze.forEach(function(row) {
+    row.forEach(function(cell) {
+      if(cell.visited) sum++;
+    });
+  });
+  return sum;
 }
 
 // ============================= ROBOT LOGIC =============================
@@ -740,7 +745,6 @@ function findPathToIsland(start_x, start_y, max_dist) {
         var path = astar(start_x, start_y, x, y);
         if(path.length <= max_dist) {
           // return path to the island
-          console.log("Island path: " + path);
           result_path = path;
         }
       }
