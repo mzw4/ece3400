@@ -182,8 +182,8 @@ $(function() {
 
   // ------------------- Simulator logic -------------------
 
-  var avg_moves = 0;
-  var sim_count = 0;
+  var avg_moves = 0.0;
+  var sim_count = 0.0;
   var running = false;
   var paused = false;
 
@@ -263,8 +263,12 @@ $(function() {
         });
         show_output('==========');
         show_output('Total simulation time: ' + ((new Date()).getTime() - start_time)/1000 + ' seconds');
+        running = false;
       }
-      $sim_info.html("Maze: " + sim_count + ' (' + (sim_count*100/_num_simulations) + '%), Algorithm:' + _algorithms[cur_algorithm]);
+      var runtime = ((new Date()).getTime() - start_time)/1000;
+      $sim_info.html("Simulating Maze: " + sim_count + ' (' + (sim_count*100/_num_simulations) + '%, ' +
+        (runtime / (sim_count/_num_simulations) - runtime).toFixed(2) + ' sec remaining)' +
+        '<br>Algorithm: ' + _algorithms[cur_algorithm]);
     }
   }
 
@@ -292,8 +296,8 @@ $(function() {
   }
 
   function initSimulation(startx, starty, start_dir, algorithm) {
-    $sim_info.html("Maze: " + sim_count + ' (' + (sim_count*100/_num_simulations) + '%), Algorithm:' + _algorithms[cur_algorithm]);
-    makeMaze(startx, starty);
+    $sim_info.html("Simulating Maze: " + sim_count + ' (' + (sim_count*100/_num_simulations) + '%, N/A sec remaining)' +
+      '<br>Algorithm: ' + _algorithms[cur_algorithm]);    makeMaze(startx, starty);
     initRobot(startx, starty, start_dir, algorithm);
     drawMaze();
     drawRobot(_robot);
@@ -676,7 +680,7 @@ function moveRobot() {
         }
       } else {
         // prioritize left movement
-        [Dir.N, Dir.S, Dir.W, Dir.E].reverse().forEach(function(dir) {
+        [Dir.N, Dir.E, Dir.S, Dir.W].reverse().forEach(function(dir) {
           var point = getPointInDir(_robot.x, _robot.y, dir);
           if(unexplored.indexOf(pointToString(point)) > -1) {
             move = {x: point.x, y: point.y };

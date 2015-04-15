@@ -9,7 +9,7 @@ body {
 /* ------ Panel stuff ------ */
 
 #container {
-  padding: 0 30px 15px 30px;
+  padding: 5px 30px 15px 30px;
 }
 
 #input_panel {
@@ -58,7 +58,7 @@ body {
 
 #output_panel {
   margin-left: 15px;
-  height: 365px;
+  height: 345px;
   overflow: auto;
 }
 
